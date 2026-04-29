@@ -1,0 +1,33 @@
+Based on the provided code, here are the derived requirements:
+**ID:** RQ-01 **Description:** The system shall allow booking a new cargo by specifying its origin, destination, and arrival deadline, generating a unique tracking ID. **Priority:** 5 **Type:** Functional
+**ID:** RQ-02 **Description:** The system shall allow requesting a list of possible itineraries (routes) for a specific cargo identified by its tracking ID. **Priority:** 4 **Type:** Functional
+**ID:** RQ-03 **Description:** The system shall allow assigning a selected itinerary (route) to a specific cargo identified by its tracking ID. **Priority:** 5 **Type:** Functional
+**ID:** RQ-04 **Description:** The system shall allow changing the destination of a specific cargo identified by its tracking ID. **Priority:** 3 **Type:** Functional
+**ID:** RQ-05 **Description:** The system shall inspect a cargo's status based on its handling history and update its delivery progress. **Priority:** 4 **Type:** Functional
+**ID:** RQ-06 **Description:** The system shall publish an event when a cargo is misdirected during inspection. **Priority:** 3 **Type:** Functional
+**ID:** RQ-07 **Description:** The system shall publish an event when a cargo has arrived at its final destination during inspection. **Priority:** 3 **Type:** Functional
+**ID:** RQ-08 **Description:** The system shall allow registering a handling event (e.g., LOAD, UNLOAD, RECEIVE) for a cargo, including completion time, location, voyage, and event type. **Priority:** 5 **Type:** Functional
+**ID:** RQ-09 **Description:** The system shall publish an event when a cargo has been handled. **Priority:** 3 **Type:** Functional
+**ID:** RQ-10 **Description:** The system shall publish an event when a handling event registration attempt is received. **Priority:** 2 **Type:** Functional
+**ID:** RQ-11 **Description:** The system shall provide a utility to convert date/time strings in "yyyy-MM-dd" and "yyyy-MM-dd HH:mm" formats to Instant objects. **Priority:** 2 **Type:** Functional
+**ID:** RQ-12 **Description:** The system shall define a Cargo aggregate with a unique Tracking ID, Route Specification, Itinerary, and Delivery status. **Priority:** 5 **Type:** Functional
+**ID:** RQ-13 **Description:** The Cargo aggregate shall update its delivery status synchronously when its route specification changes or a new itinerary is assigned. **Priority:** 4 **Type:** Functional
+**ID:** RQ-14 **Description:** The Cargo aggregate shall update its delivery status asynchronously based on handling events from a different aggregate. **Priority:** 4 **Type:** Functional
+**ID:** RQ-15 **Description:** The system shall calculate and provide the cargo's delivery status, including transport status, last known location, current voyage, ETA, next expected activity, and misdirected flag. **Priority:** 4 **Type:** Functional
+**ID:** RQ-16 **Description:** The system shall define a Handling Event aggregate for events like LOAD, UNLOAD, RECEIVE, CLAIM, and CUSTOMS, associating them with a cargo, location, time, and optionally a voyage. **Priority:** 5 **Type:** Functional
+**ID:** RQ-17 **Description:** The system shall persist Cargo, Handling Event, Location, and Voyage data. **Priority:** 5 **Type:** Functional
+**ID:** RQ-18 **Description:** The system shall generate a unique tracking ID for new cargo bookings. **Priority:** 4 **Type:** Functional
+**ID:** RQ-19 **Description:** The system shall provide a routing service to fetch possible itineraries that satisfy a given route specification. **Priority:** 4 **Type:** Functional
+**ID:** RQ-20 **Description:** The system shall consume JMS messages to trigger cargo inspection when a cargo is handled. **Priority:** 3 **Type:** Interface
+**ID:** RQ-21 **Description:** The system shall consume JMS messages to register handling events from attempted registrations. **Priority:** 3 **Type:** Interface
+**ID:** RQ-22 **Description:** The system shall publish application events (e.g., cargo handled, misdirected, arrived) via JMS. **Priority:** 3 **Type:** Interface
+**ID:** RQ-23 **Description:** The system shall provide a REST API endpoint to submit handling reports in JSON format. **Priority:** 3 **Type:** Interface
+**ID:** RQ-24 **Description:** The system shall provide a REST API endpoint to track a cargo's status and handling history by its tracking ID. **Priority:** 4 **Type:** Interface
+**ID:** RQ-25 **Description:** The system shall provide a web interface for cargo administration (booking, listing, routing, destination change). **Priority:** 4 **Type:** Interface
+**ID:** RQ-26 **Description:** The system shall provide a web interface for customers to track cargo status. **Priority:** 4 **Type:** Interface
+**ID:** RQ-27 **Description:** The system shall periodically scan a designated directory for files containing handling event data, parse them, and queue registration attempts. **Priority:** 2 **Type:** Functional
+**ID:** RQ-28 **Description:** The system shall move files that fail parsing to a separate directory and delete successfully processed files. **Priority:** 2 **Type:** Functional
+**ID:** RQ-29 **Description:** The system shall load sample data (locations, voyages, cargos, handling events) for demonstration and testing purposes. **Priority:** 1 **Type:** Constraint
+**ID:** RQ-30 **Description:** The system shall use the Spring Framework for dependency injection and transaction management. **Priority:** 5 **Type:** Constraint
+**ID:** RQ-31 **Description:** The system shall use JPA/Hibernate for object-relational mapping. **Priority:** 5 **Type:** Constraint
+**ID:** RQ-32 **Description:** The system shall support internationalization (i18n) for user-facing messages. **Priority:** 2 **Type:** Non-Functional

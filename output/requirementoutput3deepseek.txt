@@ -1,0 +1,41 @@
+Based on the provided source code, here are the derived software requirements: 
+- **ID:** RQ-01 **Description:** The system shall allow booking a new cargo by specifying its origin, destination, and arrival deadline, generating a unique tracking ID. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-02 **Description:** The system shall allow requesting a list of possible itineraries (routes) for a cargo identified by its tracking ID. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-03 **Description:** The system shall allow assigning a selected itinerary to a cargo identified by its tracking ID. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-04 **Description:** The system shall allow changing the destination of a cargo identified by its tracking ID. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-05 **Description:** The system shall inspect a cargo's status based on its handling history and update its delivery progress. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-06 **Description:** The system shall publish an event when a cargo is misdirected during inspection. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-07 **Description:** The system shall publish an event when a cargo is unloaded at its final destination during inspection. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-08 **Description:** The system shall register a handling event (e.g., load, unload, receive) for a cargo, including completion time, location, voyage, and event type. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-09 **Description:** The system shall publish an event after successfully registering a handling event. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-10 **Description:** The system shall provide a utility to convert date and time strings in "yyyy-MM-dd" and "HH:mm" format to Instant objects. **Priority:** 2 **Type:** Functional 
+- **ID:** RQ-11 **Description:** The system shall define an interface for publishing application events (cargo handled, misdirected, arrived, handling event registration attempt received). **Priority:** 3 **Type:** Interface 
+- **ID:** RQ-12 **Description:** The system shall persist cargo data, including its tracking ID, origin, route specification, itinerary, and delivery status. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-13 **Description:** The system shall generate a unique tracking ID for each new cargo. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-14 **Description:** The system shall allow specifying a new route for a cargo, updating its delivery status synchronously. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-15 **Description:** The system shall allow assigning a cargo to a route (itinerary), updating its delivery status synchronously. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-16 **Description:** The system shall derive and update a cargo's delivery progress (transport status, last known location, etc.) based on its route specification, itinerary, and handling history. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-17 **Description:** The system shall calculate and provide the estimated time of arrival (ETA) for a cargo based on its itinerary if it is on track. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-18 **Description:** The system shall calculate and provide the next expected handling activity for a cargo if it is on track. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-19 **Description:** The system shall determine if a cargo is misdirected by checking if the last handling event location is expected in its itinerary. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-20 **Description:** The system shall check if a handling event is expected according to a cargo's itinerary. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-21 **Description:** The system shall persist handling event data, including type, time, location, voyage, and associated cargo. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-22 **Description:** The system shall retrieve the handling history for a specific cargo. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-23 **Description:** The system shall create a handling event, validating that voyage numbers are provided for LOAD/UNLOAD events and not provided for RECEIVE/CLAIM/CUSTOMS events. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-24 **Description:** The system shall throw an exception when attempting to create a handling event for a non-existent cargo, voyage, or location. **Priority:** 4 **Type:** Constraint 
+- **ID:** RQ-25 **Description:** The system shall persist location data identified by a UN Locode. **Priority:** 5 **Type:** Functional 
+- **ID:** RQ-26 **Description:** The system shall validate that a UN Locode follows the pattern: two letters followed by three alphanumeric characters (letters or digits 2-9). **Priority:** 4 **Type:** Constraint 
+- **ID:** RQ-27 **Description:** The system shall persist voyage data, including its schedule of carrier movements. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-28 **Description:** The system shall fetch possible routes (itineraries) for a given route specification by delegating to an external routing service. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-29 **Description:** The system shall consume JMS messages to trigger cargo inspection for a specific tracking ID. **Priority:** 3 **Type:** Interface 
+- **ID:** RQ-30 **Description:** The system shall consume JMS messages to register handling events from registration attempts. **Priority:** 3 **Type:** Interface 
+- **ID:** RQ-31 **Description:** The system shall publish application events (cargo handled, misdirected, arrived, registration attempt received) via JMS. **Priority:** 3 **Type:** Interface 
+- **ID:** RQ-32 **Description:** The system shall periodically scan a designated directory for files containing handling event data, parse them, and queue registration attempts. **Priority:** 3 **Type:** Functional 
+- **ID:** RQ-33 **Description:** The system shall move files that fail parsing to a separate directory and delete successfully processed files. **Priority:** 2 **Type:** Functional 
+- **ID:** RQ-34 **Description:** The system shall provide a web service endpoint (REST API) to submit handling reports in JSON format. **Priority:** 4 **Type:** Interface 
+- **ID:** RQ-35 **Description:** The system shall parse handling reports from JSON, validate the data, and create handling event registration attempts. **Priority:** 4 **Type:** Functional 
+- **ID:** RQ-36 **Description:** The system shall provide a web service endpoint (REST API) to track a cargo by its tracking ID and return its status and handling history in JSON format. **Priority:** 4 **Type:** Interface 
+- **ID:** RQ-37 **Description:** The system shall provide a web interface for cargo administration (booking, listing, routing, changing destination). **Priority:** 4 **Type:** Interface 
+- **ID:** RQ-38 **Description:** The system shall provide a web interface for cargo tracking by entering a tracking ID. **Priority:** 4 **Type:** Interface 
+- **ID:** RQ-39 **Description:** The system shall execute all data modification operations (book, assign, change destination, register event, inspect) within a transactional context. **Priority:** 5 **Type:** Constraint 
+- **ID:** RQ-40 **Description:** The system shall log informational and warning messages for key operations (booking, assignment, inspection, event registration). **Priority:** 2 **Type:** Non-Functional

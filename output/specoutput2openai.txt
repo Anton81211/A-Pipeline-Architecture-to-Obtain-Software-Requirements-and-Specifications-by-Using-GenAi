@@ -1,0 +1,198 @@
+```mermaid
+classDiagram
+direction LR
+' ========================= ' Core Domain: Cargo & Routing ' =========================
+class Cargo { - TrackingId trackingId - RouteSpecification routeSpecification - List~Leg~ legs - Delivery delivery + Cargo(trackingId, routeSpecification) + itinerary() Itinerary + specifyNewRoute(routeSpecification) + assignToRoute(itinerary) + deriveDeliveryProgress(history) }
+class Delivery { - RouteSpecification routeSpecification - Itinerary itinerary - HandlingEvent lastEvent - RoutingStatus routingStatus - TransportStatus transportStatus + static derivedFrom(routeSpecification, handlingHistory) Delivery + updateOnRouting(routeSpecification, itinerary) Delivery + isMisdirected() bool + isUnloadedAtDestination() bool + estimatedTimeOfArrival() Instant + lastKnownLocation() Location + currentVoyage() Voyage + calculateNextExpectedActivity() HandlingActivity }
+class RouteSpecification { - Location origin - Location destination - Instant arrivalDeadline + isSatisfiedBy(itinerary) bool }
+class Itinerary { - List~Leg~ legs + Itinerary(legs) + legs() List~Leg~ + isExpected(event) bool + initialDepartureLocation() Location + finalArrivalLocation() Location + finalArrivalDate() Instant }
+class Leg { - Voyage voyage - Location loadLocation - Location unloadLocation - Instant loadTime - Instant unloadTime }
+class HandlingActivity { - HandlingEvent.Type type - Location location - Voyage voyage }
+class HandlingEvent { - Cargo cargo - Instant completionTime - Instant registrationTime - Type type - Location location - Voyage voyage + voyage() Voyage }
+class HandlingHistory { - Collection~HandlingEvent~ events + distinctEventsByCompletionTime() List~HandlingEvent~ + mostRecentlyCompletedEvent() HandlingEvent + filterOnCargo(trackingId) HandlingHistory }
+class Location { - UnLocode unLocode - String name <<ValueObject>> }
+class UnLocode { - String code <<ValueObject>> }
+class Voyage { - VoyageNumber voyageNumber - Schedule schedule }
+class Schedule { - List~CarrierMovement~ movements }
+class CarrierMovement { - Location departureLocation - Location arrivalLocation - Instant departureTime - Instant arrivalTime }
+class VoyageNumber { - String idString <<ValueObject>> }
+class TrackingId { - String id <<ValueObject>> }
+class RoutingStatus { <<enumeration>> NOT_ROUTED ROUTED MISROUTED }
+class TransportStatus { <<enumeration>> NOT_RECEIVED IN_PORT ONBOARD_CARRIER CLAIMED UNKNOWN }
+class HandlingEvent.Type as HandlingEventType { <<enumeration>> + requiresVoyage() bool + prohibitsVoyage() bool }
+' Relationships (core)
+Cargo "1" o-- "1" RouteSpecification
+Cargo "0..1" o-- "1" Itinerary : current itinerary
+Cargo "1" o-- "1" Delivery
+Itinerary "1" o-- "1..*" Leg
+Delivery "0..1" o-- "1" HandlingEvent : lastEvent
+Delivery "0..1" o-- "1" RouteSpecification
+Delivery "0..1" o-- "0..1" Itinerary
+HandlingEvent "1" --> "1" Cargo
+HandlingEvent "1" --> "1" Location
+HandlingEvent "0..1" --> "0..1" Voyage
+HandlingHistory "0..*" o-- "0..*" HandlingEvent
+RouteSpecification "1" --> "1" Location : origin
+RouteSpecification "1" --> "1" Location : destination
+Location "1" --> "1" UnLocode
+Voyage "1" o-- "1" Schedule
+Schedule "1" o-- "1..*" CarrierMovement
+CarrierMovement "1" --> "1" Location : departure
+CarrierMovement "1" --> "1" Location : arrival
+Voyage "1" --> "1" VoyageNumber
+Cargo "1" --> "1" TrackingId
+' ========================= ' Repositories & Factories ' =========================
+class CargoRepository { <<interface>> + find(trackingId) Cargo + findAll() List~Cargo~ + store(cargo) + nextTrackingId() TrackingId }
+class HandlingEventRepository { <<interface>> + store(event) + lookupHandlingHistoryOfCargo(trackingId) HandlingHistory }
+class LocationRepository { <<interface>> + find(unLocode) Location + findAll() List~Location~ + store(location) }
+class VoyageRepository { <<interface>> + find(voyageNumber) Voyage + store(voyage) }
+class RoutingService { <<interface>> + fetchRoutesForSpecification(routeSpecification) List~Itinerary~ }
+class CargoFactory { + createCargo(originUnLocode, destinationUnLocode, arrivalDeadline) Cargo }
+class HandlingEventFactory { + createHandlingEvent(regTime, compTime, trackingId, voyageNumber, unLocode, type) HandlingEvent }
+class CannotCreateHandlingEventException { <<exception>> }
+class UnknownCargoException { <<exception>> }
+class UnknownVoyageException { <<exception>> }
+class UnknownLocationException { <<exception>> }
+' Relationships (repos & factories)
+CargoFactory --> CargoRepository
+CargoFactory --> LocationRepository
+CargoFactory --> Cargo
+HandlingEventFactory --> CargoRepository
+HandlingEventFactory --> VoyageRepository
+HandlingEventFactory --> LocationRepository
+HandlingEventFactory --> HandlingEvent
+UnknownCargoException --|> CannotCreateHandlingEventException
+UnknownVoyageException --|> CannotCreateHandlingEventException
+UnknownLocationException --|> CannotCreateHandlingEventException
+' ========================= ' Domain Services ' =========================
+class BookingService { <<interface>> + bookNewCargo(origin:UnLocode, dest:UnLocode, arrivalDeadline:Instant) TrackingId + requestPossibleRoutesForCargo(trackingId) List~Itinerary~ + assignCargoToRoute(itinerary, trackingId) + changeDestination(trackingId, newDestination:UnLocode) }
+class BookingServiceImpl { + bookNewCargo(...) + requestPossibleRoutesForCargo(...) + assignCargoToRoute(...) + changeDestination(...) }
+class CargoInspectionService { <<interface>> + inspectCargo(trackingId) }
+class CargoInspectionServiceImpl { + inspectCargo(trackingId) }
+class HandlingEventService { <<interface>> + registerHandlingEvent(completionTime, trackingId, voyageNumber, unLocode, type) }
+class HandlingEventServiceImpl { + registerHandlingEvent(...) }
+' Relationships (domain services)
+BookingServiceImpl ..|> BookingService
+BookingServiceImpl --> CargoRepository
+BookingServiceImpl --> RoutingService
+BookingServiceImpl --> CargoFactory
+BookingServiceImpl --> Logger : logs
+CargoInspectionServiceImpl ..|> CargoInspectionService
+CargoInspectionServiceImpl --> CargoRepository
+CargoInspectionServiceImpl --> HandlingEventRepository
+CargoInspectionServiceImpl --> ApplicationEvents
+HandlingEventServiceImpl ..|> HandlingEventService
+HandlingEventServiceImpl --> HandlingEventFactory
+HandlingEventServiceImpl --> HandlingEventRepository
+HandlingEventServiceImpl --> ApplicationEvents
+' ========================= ' Application Events & Messaging ' =========================
+class ApplicationEvents { <<interface>> + cargoWasHandled(cargo) + cargoWasMisdirected(cargo) + cargoHasArrived(cargo) + receivedHandlingEventRegistrationAttempt(attempt) }
+class JmsApplicationEventsImpl { + cargoWasHandled(cargo) + cargoWasMisdirected(cargo) + cargoHasArrived(cargo) + receivedHandlingEventRegistrationAttempt(attempt) }
+class CargoHandledConsumer { + onMessage(TextMessage) }
+class HandlingEventRegistrationAttemptConsumer { + onMessage(ObjectMessage) }
+class SimpleLoggingConsumer { + onMessage(Message) }
+class HandlingEventRegistrationAttempt { + registrationTime : Instant + completionTime : Instant + trackingId : TrackingId + voyageNumber : VoyageNumber + type : HandlingEvent.Type + unLocode : UnLocode }
+ApplicationEvents <|.. JmsApplicationEventsImpl
+CargoHandledConsumer --> CargoInspectionService
+HandlingEventRegistrationAttemptConsumer --> HandlingEventService
+JmsApplicationEventsImpl --> HandlingEventRegistrationAttempt
+JmsApplicationEventsImpl --> JmsOperations
+' ========================= ' DTOs & Assemblers (Interfaces layer) ' =========================
+class CargoRoutingDTO { + trackingId : String + origin : String + finalDestination : String + arrivalDeadline : Instant + misrouted : bool + legs : List~LegDTO~ + isRouted() bool }
+class LegDTO { + voyageNumber : String + from : String + to : String + loadTime : Instant + unloadTime : Instant }
+class LocationDTO { + unLocode : String + name : String }
+class RouteCandidateDTO { + legs : List~LegDTO~ }
+class CargoRoutingDTOAssembler { + toDTO(cargo) CargoRoutingDTO }
+class ItineraryCandidateDTOAssembler { + toDTO(itinerary) RouteCandidateDTO + fromDTO(dto) Itinerary }
+class LocationDTOAssembler { + toDTO(location) LocationDTO + toDTOList(locations) List~LocationDTO~ }
+CargoRoutingDTOAssembler --> Cargo
+CargoRoutingDTOAssembler --> CargoRoutingDTO
+ItineraryCandidateDTOAssembler --> Itinerary
+ItineraryCandidateDTOAssembler --> RouteCandidateDTO
+ItineraryCandidateDTOAssembler --> VoyageRepository
+ItineraryCandidateDTOAssembler --> LocationRepository
+LocationDTOAssembler --> Location
+LocationDTOAssembler --> LocationDTO
+' ========================= ' Booking Facade & Web (Admin) ' =========================
+class BookingServiceFacade { <<interface>> + bookNewCargo(originUnlocode:String, destUnlocode:String, arrivalDeadline:String) String + loadCargoForRouting(trackingId:String) CargoRoutingDTO + assignRoute(trackingId:String, route:RouteCandidateDTO) + changeDestination(trackingId:String, newDestUnlocode:String) + requestPossibleRoutes(trackingId:String) List~RouteCandidateDTO~ + listLocations() List~LocationDTO~ + listAllCargos() List~CargoRoutingDTO~ }
+class BookingServiceFacadeImpl { + bookNewCargo(...) + loadCargoForRouting(...) + ... }
+class CargoAdminController { + register(command:RegistrationCommand) + list() + view(trackingId) + route(trackingId) + assignItinerary(...) + changeDestination(...) }
+class RegistrationCommand { + originUnlocode : String + destinationUnlocode : String + arrivalDeadline : String }
+class RouteAssignmentCommand.LegCommand as LegCommand { + fromDate : Instant + toDate : Instant }
+BookingServiceFacadeImpl ..|> BookingServiceFacade
+BookingServiceFacadeImpl --> BookingService
+BookingServiceFacadeImpl --> CargoRepository
+BookingServiceFacadeImpl --> LocationRepository
+BookingServiceFacadeImpl --> CargoRoutingDTOAssembler
+BookingServiceFacadeImpl --> ItineraryCandidateDTOAssembler
+BookingServiceFacadeImpl --> LocationDTOAssembler
+CargoAdminController --> BookingServiceFacade
+CargoAdminController --> RegistrationCommand
+LegCommand --> Instant
+' ========================= ' Tracking (REST + MVC) ' =========================
+class CargoTrackingDTO { + trackingId : String + statusText : String + destination : String + eta : Instant + nextExpectedActivity : String + misdirected : bool + events : List~HandlingEvent~ }
+class CargoTrackingDTOConverter { + convert(cargo, events) CargoTrackingDTO + convertStatusText(delivery, locale) String + convertNextExpectedActivity(delivery) String }
+class CargoTrackingRestService { + trackCargo(trackingId:String) : HttpResponse~CargoTrackingDTO~ }
+class CargoTrackingViewAdapter { + getStatusText(locale) String + getOrigin() + getDestination() + getEta() + isMisdirected() + getHandlingEvents() List~HandlingEventViewAdapter~ }
+class CargoTrackingViewAdapter.HandlingEventViewAdapter as HEViewAdapter { + getLocation() + getTime() + getType() + getVoyageNumber() + isExpected() + getDescription(locale) }
+class CargoTrackingController { + trackForm() + onSubmit(command:TrackCommand) }
+class TrackCommand { + trackingId : String }
+class TrackCommandValidator { + validate(command:TrackCommand, errors) }
+CargoTrackingDTOConverter --> Cargo
+CargoTrackingDTOConverter --> HandlingEvent
+CargoTrackingDTOConverter --> CargoTrackingDTO
+CargoTrackingDTOConverter --> MessageSource
+CargoTrackingRestService --> CargoRepository
+CargoTrackingRestService --> HandlingEventRepository
+CargoTrackingRestService --> CargoTrackingDTOConverter
+CargoTrackingViewAdapter --> Cargo
+CargoTrackingViewAdapter --> HandlingEvent
+CargoTrackingViewAdapter --> HEViewAdapter
+CargoTrackingViewAdapter --> MessageSource
+CargoTrackingController --> CargoRepository
+CargoTrackingController --> HandlingEventRepository
+CargoTrackingController --> CargoTrackingViewAdapter
+CargoTrackingController --> TrackCommand
+CargoTrackingController --> TrackCommandValidator
+' ========================= ' Upload / REST Handling Reports ' =========================
+class UploadDirectoryScanner { + run() + afterPropertiesSet() + queueAttempt(columns:String[]) }
+class HandlingReport { + completionTime + trackingIds : List~String~ + type + unLocode }
+class HandlingReportService { + submitReport(report:HandlingReport) : HttpResponse }
+class HandlingReportParser { + parse(report:HandlingReport) List~HandlingEventRegistrationAttempt~ + parseUnLocode(str) UnLocode + parseTrackingId(str) TrackingId + parseVoyageNumber(str) VoyageNumber + parseDate(str) Instant + parseEventType(str) HandlingEvent.Type + parseCompletionTime(LocalDateTime) Instant }
+UploadDirectoryScanner --> ApplicationEvents
+UploadDirectoryScanner --> HandlingReportParser
+HandlingReportService --> ApplicationEvents
+HandlingReportService --> HandlingReportParser
+' ========================= ' Utilities & Base Types ' =========================
+class DateUtils { + toDate(dateStr:String) Instant + toDate(dateStr:String, timeStr:String) Instant }
+class AbstractSpecification~T~ { <<abstract>> + isSatisfiedBy(t:T) bool + and(other) AbstractSpecification + or(other) AbstractSpecification + not() AbstractSpecification }
+class AndSpecification~T~ { + isSatisfiedBy(t:T) bool }
+class OrSpecification~T~ { + isSatisfiedBy(t:T) bool }
+class NotSpecification~T~ { + isSatisfiedBy(t:T) bool }
+class DomainEntity~T~ { + sameIdentityAs(other:T) bool }
+class ValueObject~T~ { + sameValueAs(other:T) bool }
+AbstractSpecification <|-- AndSpecification
+AbstractSpecification <|-- OrSpecification
+AbstractSpecification <|-- NotSpecification
+' ========================= ' Infrastructure Config ' =========================
+class InfrastructureMessagingJmsConfig { + connectionFactory() + jmsTemplate() + cargoHandledQueue() + misdirectedCargoQueue() + deliveredCargoQueue() + handlingEventQueue() + consumers() }
+class DDDSampleApplicationContext { + cargoRepository() + handlingEventRepository() + locationRepository() + voyageRepository() + routingService() + cargoFactory() + bookingService() + cargoInspectionService() + handlingEventService() + sampleDataGenerator() }
+class InterfacesApplicationContext { + messageSource() + localeResolver() + bookingServiceFacade() + cargoTrackingRestService() + trackCommandValidator() + uploadDirectoryScanner() + myScheduler() + openEntityManagerInViewInterceptor() }
+class PathfinderApplicationContext { + graphTraversalService() }
+class Application { + main(args) }
+Application --> DDDSampleApplicationContext
+Application --> PathfinderApplicationContext
+InterfacesApplicationContext --> BookingServiceFacade
+InterfacesApplicationContext --> CargoTrackingRestService
+InterfacesApplicationContext --> UploadDirectoryScanner
+' ========================= ' Sample Data ' =========================
+class SampleDataGenerator { + init() }
+class SampleVoyages { + sampleVoyage() Voyage }
+class SampleLocations { + sampleLocation() Location }
+SampleDataGenerator --> CargoRepository
+SampleDataGenerator --> LocationRepository
+SampleDataGenerator --> VoyageRepository
+SampleDataGenerator --> HandlingEventFactory
+SampleDataGenerator --> HandlingEventRepository
+SampleDataGenerator --> SampleVoyages
+SampleDataGenerator --> SampleLocations ```

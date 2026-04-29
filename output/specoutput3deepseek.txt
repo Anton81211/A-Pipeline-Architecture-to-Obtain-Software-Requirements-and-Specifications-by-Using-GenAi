@@ -1,0 +1,29 @@
+```mermaid classDiagram
+class Cargo { -TrackingId trackingId -RouteSpecification routeSpecification -Itinerary itinerary -Delivery delivery +book(origin, destination, deadline) Cargo +requestPossibleItineraries() List~Itinerary~ +assignItinerary(itinerary) +changeDestination(destination) +inspectStatus() +deriveDeliveryProgress() +calculateETA() Instant +calculateNextExpectedActivity() HandlingActivity +isMisdirected() boolean +isExpected(handlingEvent) boolean }
+class RouteSpecification { -Location origin -Location destination -Instant arrivalDeadline +isSatisfiedBy(itinerary) boolean }
+class Itinerary { -List~Leg~ legs +calculateETA() Instant +getNextExpectedActivity(lastEvent) HandlingActivity +isExpected(location, voyage) boolean }
+class Leg { -Location loadLocation -Location unloadLocation -Instant loadTime -Instant unloadTime -Voyage voyage }
+class Delivery { -TransportStatus transportStatus -Location lastKnownLocation -HandlingEvent lastEvent -boolean misdirected -Instant estimatedTimeOfArrival -HandlingActivity nextExpectedActivity +update(routeSpec, itinerary, handlingHistory) }
+class HandlingEvent { -EventType type -Instant completionTime -Location location -Voyage voyage -Cargo cargo +create(type, time, location, voyage, cargo) HandlingEvent +validate() }
+class Location { -UNLocode unLocode +validateUNLocode(pattern) boolean }
+class Voyage { -String voyageNumber -List~CarrierMovement~ schedule }
+class CarrierMovement { -Location departureLocation -Location arrivalLocation -Instant departureTime -Instant arrivalTime }
+%% Relationships
+Cargo --> RouteSpecification
+Cargo --> Itinerary
+Cargo --> Delivery
+Cargo --> Location
+RouteSpecification --> Location
+Itinerary --> Leg
+Leg --> Voyage
+Leg --> Location
+Voyage --> Schedule
+Schedule --> CarrierMovement
+CarrierMovement --> Location
+HandlingEvent --> Cargo
+HandlingEvent --> Voyage
+HandlingEvent --> Location
+HandlingActivity --> Delivery
+HandlingActivity --> HandlingEvent
+Delivery --> HandlingEvent
+Delivery --> Voyage ```

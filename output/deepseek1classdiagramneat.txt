@@ -1,0 +1,50 @@
+classDiagram
+%% Core Domain Entities
+class Cargo { -TrackingId trackingId -RouteSpecification routeSpecification -Itinerary itinerary -Delivery delivery +book(origin, destination, deadline) TrackingId +assignItinerary(itinerary) +changeDestination(destination) +deriveDeliveryProgress() }
+class TrackingId { -String id +generate() TrackingId }
+class RouteSpecification { -Location origin -Location destination -Instant arrivalDeadline +isSatisfiedBy(itinerary) boolean }
+class Itinerary { -List~Leg~ legs +calculateETA() Instant +nextExpectedActivity() HandlingActivity +isExpected(event) boolean }
+class Leg { -Voyage voyage -Location loadLocation -Location unloadLocation -Instant loadTime -Instant unloadTime }
+class Delivery { -TransportStatus transportStatus -Location lastKnownLocation -HandlingEvent lastEvent -boolean isMisdirected -Instant estimatedTimeOfArrival -HandlingActivity nextExpectedActivity +update(handlingHistory) }
+class HandlingEvent { -EventType type -Instant completionTime -Location location -Voyage voyage -TrackingId trackingId +create(type, time, location, voyage, trackingId) }
+class HandlingHistory { -List~HandlingEvent~ events +getMostRecent() HandlingEvent }
+class Location { -UnLocode unLocode -String name +validate() boolean }
+class UnLocode { -String code +isValidPattern() boolean }
+class Voyage { -VoyageNumber number -Schedule schedule }
+%% Services
+class BookingService { +bookNewCargo(origin, destination, deadline) TrackingId }
+class RoutingService { +fetchRoutesForCargo(trackingId) List~Itinerary~ +assignRouteToCargo(trackingId, itinerary) }
+class HandlingEventService { +registerHandlingEvent(type, time, location, voyage, trackingId) +validateEventData() boolean +getHandlingHistory(trackingId) HandlingHistory }
+class InspectionService { +inspectCargo(trackingId) +checkIfMisdirected(cargo) boolean +updateDeliveryStatus(cargo) }
+class TrackingService { +trackCargo(trackingId) CargoStatusDTO }
+%% External Interfaces
+class EventPublisher { <<interface>> +publishCargoHandled(event) +publishCargoMisdirected(event) +publishCargoArrived(event) +publishRegistrationAttempt(event) }
+class JmsEventPublisher { +publishCargoHandled(event) +publishCargoMisdirected(event) +publishCargoArrived(event) +publishRegistrationAttempt(event) }
+class FileProcessor { +scanDirectory() +parseHandlingEventFile(file) +moveFailedFile(file) +deleteProcessedFile(file) }
+class RestController { +submitHandlingReport(json) +trackCargo(trackingId) JSON }
+class WebController { +bookCargo() +listCargos() +assignRoute() +changeDestination() +trackCargo() }
+class JmsConsumer { +onCargoInspectionMessage(message) +onHandlingEventRegistration(message) }
+%% Enumerations
+class EventType { <<enumeration>> RECEIVE LOAD UNLOAD CLAIM CUSTOMS }
+class TransportStatus { <<enumeration>> NOT_RECEIVED IN_PORT ONBOARD_CARRIER CLAIMED UNKNOWN }
+%% Relationships
+Cargo "1" --> "1" TrackingId
+Cargo "1" --> "1" RouteSpecification
+Cargo "1" --> "0..1" Itinerary
+Cargo "1" --> "1" Delivery
+Itinerary "1" --> "*" Leg
+Leg "1" --> "1" Voyage
+Leg "1" --> "1" Location
+HandlingEvent "1" --> "1" TrackingId
+HandlingEvent "1" --> "1" Location
+HandlingEvent "1" --> "0..1" Voyage
+HandlingHistory "1" --> "*" HandlingEvent
+Delivery "1" --> "1" HandlingHistory
+BookingService --> Cargo
+RoutingService --> Cargo
+RoutingService --> Itinerary
+HandlingEventService --> HandlingEvent
+InspectionService --> Cargo
+TrackingService --> Cargo
+EventPublisher <|.. JmsEventPublisher
+JmsEventPublisher --> EventPublisher 

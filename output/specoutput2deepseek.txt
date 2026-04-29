@@ -1,0 +1,55 @@
+Based on the requirements, I'll create a UML specification using Mermaid that includes:
+1. A use case diagram showing the main actors and their interactions
+2. A class diagram showing the core domain entities
+```mermaid %% Use Case Diagram graph TD subgraph "Cargo Booking System" UC1[Book New Cargo<br/>RQ-01, RQ-13] UC2[Request Itineraries<br/>RQ-02, RQ-28] UC3[Assign Itinerary<br/>RQ-03, RQ-15] UC4[Change Destination<br/>RQ-04, RQ-14] UC5[Inspect Cargo<br/>RQ-05, RQ-16] UC6[Register Handling Event<br/>RQ-08, RQ-23] UC7[Track Cargo<br/>RQ-36, RQ-38] UC8[Process Handling Reports<br/>RQ-34, RQ-35] UC9[Monitor File Directory<br/>RQ-32, RQ-33] UC5 --> UC6a[Publish Misdirected Event<br/>RQ-06] UC5 --> UC6b[Publish Arrived Event<br/>RQ-07] UC6 --> UC6c[Publish Event Registered<br/>RQ-09] end subgraph "Actors" A1[Cargo Clerk] A2[Customer] A3[External System] A4[File System] A5[Routing Service] end A1 --> UC1 A1 --> UC2 A1 --> UC3 A1 --> UC4 A1 --> UC7 A2 --> UC7 A3 --> UC8 A4 --> UC9 A5 -.-> UC2 UC1 --> P1[Persist Cargo<br/>RQ-12] UC6 --> P2[Persist Handling Event<br/>RQ-21] UC7 --> P3[Retrieve History<br/>RQ-22] ```
+```mermaid
+%% class Diagram
+classDiagram
+%% Core Domain Entities
+class Cargo { -trackingId: TrackingId -routeSpecification: RouteSpecification -itinerary: Itinerary -delivery: Delivery +book(origin, destination, deadline) TrackingId +assignItinerary(itinerary) +changeDestination(destination) +deriveDeliveryProgress(history) }
+class TrackingId { -id: String +generate() TrackingId }
+class RouteSpecification { -origin: Location -destination: Location -arrivalDeadline: Instant +isSatisfiedBy(itinerary) boolean }
+class Itinerary { -legs: List~Leg~ +calculateETA() Instant +nextExpectedActivity() HandlingActivity }
+class Leg { -loadLocation: Location -unloadLocation: Location -loadTime: Instant -unloadTime: Instant -voyage: Voyage }
+class Delivery { -transportStatus: TransportStatus -lastKnownLocation: Location -currentVoyage: Voyage -misdirected: boolean -eta: Instant -nextExpectedActivity: HandlingActivity +updateOnRouting() +updateOnHandling(event, itinerary) }
+class HandlingEvent { -type: HandlingEventType -completionTime: Instant -location: Location -voyage: Voyage -cargo: Cargo +create(type, time, location, voyage, cargo) }
+class HandlingHistory { -events: List~HandlingEvent~ +getMostRecentEvent() HandlingEvent }
+class Location { -unLocode: UNLocode -name: String }
+class UNLocode { -code: String +validate(pattern) boolean }
+class Voyage { -voyageNumber: VoyageNumber -schedule: CarrierMovement }
+%% Service Layer
+class BookingService { +bookNewCargo(origin, destination, deadline) TrackingId +requestPossibleRoutes(trackingId) List~Itinerary~ +assignRoute(trackingId, itinerary) +changeDestination(trackingId, destination) }
+class HandlingEventService { +registerHandlingEvent(type, time, location, voyage, trackingId) +validateEvent(type, voyage) +retrieveHistory(trackingId) HandlingHistory }
+class InspectionService { +inspectCargo(trackingId) +checkIfMisdirected(cargo, history) boolean +checkIfArrived(cargo, history) boolean }
+class RoutingService { +fetchRoutesForSpecification(specification) List~Itinerary~ }
+%% Interface Layer
+class ApplicationEventPublisher { <<interface>> +publishCargoHandled(event) +publishCargoMisdirected(cargo) +publishCargoArrived(cargo) +publishRegistrationAttemptReceived(attempt) }
+class JmsEventPublisher { +publishCargoHandled(event) +publishCargoMisdirected(cargo) +publishCargoArrived(cargo) +publishRegistrationAttemptReceived(attempt) }
+class RestController { +submitHandlingReport(json) +trackCargo(trackingId) JSON }
+class FileMonitor { +scanDirectory() +parseFile(file) +queueRegistrationAttempt(data) +moveFailedFile(file) }
+%% Relationships
+Cargo "1" --> "1" TrackingId
+Cargo "1" --> "1" RouteSpecification
+Cargo "1" --> "0..1" Itinerary
+Cargo "1" --> "1" Delivery
+Itinerary "1" --> "*" Leg
+Leg "1" --> "1" Voyage
+Leg "1" --> "1" Location
+HandlingEvent "1" --> "1" Cargo
+HandlingEvent "1" --> "0..1" Voyage
+HandlingEvent "1" --> "1" Location
+HandlingHistory "1" --> "*" HandlingEvent
+RouteSpecification "1" --> "1" Location : origin
+RouteSpecification "1" --> "1" Location : destination
+Location "1" --> "1" UNLocode
+BookingService --> Cargo
+BookingService --> RoutingService
+HandlingEventService --> HandlingEvent
+HandlingEventService --> ApplicationEventPublisher
+InspectionService --> Cargo
+InspectionService --> HandlingHistory
+InspectionService --> ApplicationEventPublisher
+RestController --> HandlingEventService
+RestController --> BookingService
+FileMonitor --> HandlingEventService
+JmsEventPublisher ..|> ApplicationEventPublisher ```
